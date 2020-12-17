@@ -1,0 +1,84 @@
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+install.packages("tm")
+install.packages("NLP")
+install.packages("SnowballC")
+install.packages("wordcloud")
+install.packages("RColorBrewer")
+install.packages("caTools")
+install.packages("randomForest")
+library(tm)
+library(NLP)
+library(SnowballC)
+library(wordcloud)
+library(RColorBrewer)
+library(caTools)
+library(randomForest)
+
+NPS <-read_csv("NPStext.csv")
+View(NPS)
+
+class(NPS)
+
+corpus = VCorpus(VectorSource(NPS$Text))
+corpus = tm_map(corpus, content_transformer(tolower))
+corpus = tm_map(corpus, removeNumbers)
+corpus = tm_map(corpus, removePunctuation)
+head(corpus)
+View(corpus)
+head(stopwords())
+
+stopwords_new=c(stopwords("en"))
+corpus = tm_map(corpus, removeWords, stopwords("en"))
+
+corpus = tm_map(corpus, stemDocument)
+corpus = tm_map(corpus, stripWhitespace)
+
+dtm = DocumentTermMatrix(corpus)
+dtm
+dtm = removeSparseTerms(dtm, 0.999)
+
+dataset = as.data.frame(as.matrix(dtm)) #converting to data frame
+dim(dataset) 
+class(dataset)
+View(dataset)
+
+m <- as.matrix(dtm)
+v <- sort(colSums(m),decreasing=TRUE)
+head(v,14)
+
+words <- names(v)
+d <- data.frame(word=words, freq=v)
+wordcloud(d$word,d$freq,min.freq=10,colors=brewer.pal(8, "Dark2"))
+
+barplot(d[1:10,]$freq, las = 2, names.arg = d[1:10,]$word,
+        col ="lightblue", main ="Most frequent words",
+        ylab = "Word frequencies")
+
+
+##random forest
+dataset$Score = NPS$Score
+# Encoding the target feature as factor
+dataset$Score = factor(dataset$Score, levels = c(0,1,2,3,4,5,6,7,8,9,10))
+# Splitting the dataset into the Training set and Test set
+# install.packages('caTools')
+library(caTools)
+set.seed(123)
+split = sample.split(dataset$Score, SplitRatio = 0.8)
+training_set = subset(dataset, split == TRUE)  #model will be trained on this set
+test_set = subset(dataset, split == FALSE) #predictive power of model wll be tested on this set
+
+classifier = randomForest(x = training_set[-692],
+                          y = training_set$Score,
+                          ntree = 10)  #10 decision trees to be build in random forest.
+
+# Predicting the Test set results
+y_pred = predict(classifier, newdata = test_set[-692])
+
+#Confusion matrix to check accuracy
+cm=table(y_pred,test_set$Score)
+cm
+
+accuracy=((cm[1,1]+cm[2,2])/sum(cm))*100
+accuracy
