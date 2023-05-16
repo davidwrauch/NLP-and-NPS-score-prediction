@@ -1,1 +1,1 @@
-This is an example in r to help predict the net promoter score of people based on their text responses. This approach uses a bag of words model and random forest.
+This is an example in r to help predict the net promoter score of people based on their text responses to a net promoter score prompt on a website. This lets us know which words are associated with good or bad scores so we can know what to focus on to improve net promoter scores. This approach uses a bag of words model and random forest.
